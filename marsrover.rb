@@ -1,109 +1,109 @@
+class Error
+	def self.error(no)
+		case no
+		when 1
+			raise ArgumentError, "Invalid arguments for rover"
+		when 2
+			raise ArgumentError, "Invalid rotation or move"
+		when 3
+			raise ArgumentError, "Invalid cordinates for pletaue"
+		when 4
+			raise ArgumentError, "Invalid command for rover"
+		else
+			raise "Something went wrong"
+		end
+	end
+end
+
+
 class Rover
 	attr_reader :x
 	attr_reader :y
 	attr_reader :face
-	attr_reader :plot_x
-	attr_reader :plot_y
-	def initialize(x,y,face, plot_x, plot_y)
+	attr_reader :face_numeric
+	attr_reader :pletaue
+	attr_reader :valid_direction
+	attr_reader :direction_map_numeric
+	
+	def initialize(x,y,face, pletaue)
+		@valid_direction = ['N', 'W', 'S' ,'E']
+		@direction_map_numeric = {"N" => 0, "W" => 1, "S" => 2, "E" => 3}
+		if !([x,y].all? {|i| i.is_a?(Integer)}) || x < 0 || y < 0 || !(@valid_direction.include? face) || x > pletaue.plot_x || y > pletaue.plot_y || @pletaue.is_a?(Pletaue)
+			Error.error(1)
+		end
 		@x =x
 		@y =y
 		@face =face
-		@plot_x = plot_x
-		@plot_y = plot_y
+		@face_numeric = @direction_map_numeric[face]
+		@pletaue = pletaue
 	end
-	def setCordinates(x,y)
-		if(x <= @plot_x && y <= @plot_y && x >= 0 && y >= 0)
-			@x = x
-			@y = y
+	def change_direction(rotation)
+		case rotation
+		when 'R'
+			@face_numeric = (@face_numeric - 1)%4
+			@face = @valid_direction[@face_numeric]
+		when 'L'
+			@face_numeric = (@face_numeric + 1)%4
+			@face = @valid_direction[@face_numeric]
+		else
+			Error.error(2)
 		end
 	end
-	def setFace(face)
-		@face = face
-	end
-end
-class Direction
-	attr_reader :new_direction
-	def changeDirection(rotation, intial_facing)
-		case rotation
-		when 'L'
-			case intial_facing
-			when 'N'
-				@new_direction = 'W'
-			when 'W'
-				@new_direction = 'S'
-			when 'S'
-				@new_direction = 'E'
-			when 'E'
-				@new_direction = 'N'
-			else
-				puts "Error no initial facing direction added"
-			end
-		when 'R'
-			case intial_facing
-			when 'N'
-				@new_direction = 'E'
-			when 'E'
-				@new_direction = 'S'
-			when 'S'
-				@new_direction = 'W'
-			when 'W'
-				@new_direction = 'N'
-			else
-				puts "Error no intial facing direction added"
-			end
-		else
-			puts "Error no rotation direction added"
-		end  
-		@new_direction
-	end
-end
 
-class Move
-	attr_reader :x
-	attr_reader :y
-	def move(initial_facing,x,y)
-		@x=x
-		@y=y
-		case initial_facing
+	def in_boundary
+		if @x < 0 || @y < 0 || @x > @pletaue.plot_x || @y > @pletaue.plot_y
+			Error.error(2)
+		end
+	end
+
+	def move
+		case @face
 		when 'N'
-			@x = x
 			@y += 1
 		when 'E'
 			@x += 1
-			@y = y
 		when 'W'
 			@x -= 1
-			@y = y
 		when 'S'
-			@x = x
 			@y -= 1
 		else
-			puts "Error no initial facing direction added"
+			Error.error(2)
 		end
-		[@x, @y]
 	end
 end
 
-
-class Start
-	def inputMe(one, two, user_in)
-		#user_in = gets.chomp
-		dim = one.split(" ")
-		#user_in = gets.chomp
-		init_state = two.split(" ")
-		rover = Rover.new(init_state[0].to_i, init_state[1].to_i, init_state[2], dim[0].to_i, dim[1].to_i)
-		#user_in = gets.chomp
-		direction = Direction.new
-		mov = Move.new
-		user_in.split("").each do |c|
-			if ['R', 'L'].include? c
-				new_direction = direction.changeDirection(c, rover.face)
-				rover.setFace(new_direction)
-			elsif ['M'].include? c
-				x, y = mov.move(rover.face, rover.x, rover.y)
-				rover.setCordinates(x,y)
-			end
+class Pletaue
+	attr_reader :plot_x
+	attr_reader :plot_y
+	def initialize(x,y)
+		if !([x,y].all? {|i| i.is_a?(Integer)}) || x <= 0 || y <=0
+			Error.error(3)
 		end
-		"#{rover.x} #{rover.y} #{rover.face}"
+		@plot_x = x
+		@plot_y = y
+	end
+end
+
+class Navigate
+	def input_me(ppos, position, user_in)
+		begin
+			pletaue = ppos.split(" ")
+			p = Pletaue.new(pletaue[0].to_i, pletaue[1].to_i)
+			init_state = position.split(" ")
+			rover = Rover.new(init_state[0].to_i, init_state[1].to_i, init_state[2], p)
+			user_in.split("").each do |c|
+				if ['R', 'L'].include? c
+					rover.change_direction(c)
+				elsif ['M'].include? c
+					rover.move
+					rover.in_boundary
+				else
+					Error.error(4)
+				end
+			end
+			"#{rover.x} #{rover.y} #{rover.face}"
+		rescue
+			"An error occured"
+		end	
 	end
 end
